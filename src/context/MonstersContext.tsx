@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, type ReactNode } from 'react'
 import type { Monster } from '../types/monster.types'
+import { toast } from 'react-toastify'
 
 interface MonstersContextValue {
   monsters: Monster[]
@@ -18,8 +19,9 @@ export function MonstersProvider({ children }: { children: ReactNode }) {
   }
 
   const deleteMonster = (id: string) => {
-    if (confirm('Delete this monster?')) {
+    if (confirm('Excluir este monstro?')) {
       setMonsters((prev) => prev.filter((m) => m.id !== id))
+      toast.success('Monstro excluído')
     }
   }
 

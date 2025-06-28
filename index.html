@@ -1,10 +1,27 @@
 <!doctype html>
-<html lang="en">
+<html lang="pt">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + React + TS</title>
+    <title>Batalha de Monstros</title>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              blood: '#dc2626',
+              deepPurple: '#7e22ce',
+              dark: '#1f2937',
+            },
+            fontFamily: {
+              sans: ['Poppins', 'sans-serif'],
+              display: ['Orbitron', 'sans-serif'],
+            },
+          },
+        },
+      }
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
   </head>
   <body>
