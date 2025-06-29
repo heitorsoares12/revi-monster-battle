@@ -124,6 +124,16 @@ button:focus-visible {
   animation: takeDamage 0.5s forwards;
 }
 
+.shadow-glow {
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.7);
+  animation: glow 1.5s infinite alternate;
+}
+
+@keyframes glow {
+  from { box-shadow: 0 0 10px rgba(255, 215, 0, 0.7); }
+  to { box-shadow: 0 0 20px rgba(255, 215, 0, 0.9); }
+}
+
 @keyframes attack {
   0% { transform: translateX(0); }
   50% { transform: translateX(50px); filter: brightness(1.5); }

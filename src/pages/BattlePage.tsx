@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useMonsters } from '../context/MonstersContext'
 import { runBattle, type BattleResult, type RoundLog } from '../logic/battle'
 import type { Monster } from '../types'
+import MonsterResultCard from '../components/MonsterResultCard'
 import { motion } from 'framer-motion'
 
 interface BarProps { hp: number; maxHp: number }
@@ -47,27 +48,50 @@ const FloatingDamage = ({ value }: { value: number | null }) => {
   )
 }
 
-interface TimelineProps { rounds: RoundLog[]; monsters: Monster[] }
-const BattleTimeline = ({ rounds, monsters }: TimelineProps) => (
-  <ul className="space-y-2">
-    {rounds.map((r, i) => {
-      const attacker = monsters.find((m) => m.id === r.attackerId)
-      const defender = monsters.find((m) => m.id === r.defenderId)
-      return (
-        <li
-          key={i}
-          className="flex items-center gap-2 bg-gray-800/70 rounded p-2"
-        >
-          <img src={attacker?.image_url} alt="a" className="w-6 h-6" />
-          <span>⚔️</span>
-          <img src={defender?.image_url} alt="d" className="w-6 h-6" />
-          <span className="ml-auto text-sm text-amber-200">
-            dano {r.damage} - HP {r.remainingHp}
-          </span>
-        </li>
-      )
-    })}
-  </ul>
+interface TimelineProps {
+  rounds: RoundLog[]
+  monsters: Monster[]
+  endRef?: React.RefObject<HTMLDivElement | null>
+}
+const BattleTimeline = ({ rounds, monsters, endRef }: TimelineProps) => (
+  <div className="overflow-x-auto">
+    <table className="min-w-full bg-gray-800/80">
+      <thead>
+        <tr className="border-b border-gray-700">
+          <th className="py-2">Round</th>
+          <th>Atacante</th>
+          <th>Dano</th>
+          <th>Defensor</th>
+          <th>HP Restante</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rounds.map((r, i) => {
+          const attacker = monsters.find((m) => m.id === r.attackerId)
+          const defender = monsters.find((m) => m.id === r.defenderId)
+          return (
+            <tr
+              key={i}
+              className="border-b border-gray-700/50 hover:bg-gray-700/30"
+            >
+              <td className="py-2 text-center">{i + 1}</td>
+              <td className="flex items-center gap-2">
+                <img src={attacker?.image_url} className="w-8 h-8 rounded-full" />
+                {attacker?.name}
+              </td>
+              <td className="text-red-400 font-bold">{r.damage}</td>
+              <td className="flex items-center gap-2">
+                <img src={defender?.image_url} className="w-8 h-8 rounded-full" />
+                {defender?.name}
+              </td>
+              <td>{r.remainingHp}</td>
+            </tr>
+          )
+        })}
+      </tbody>
+    </table>
+    <div ref={endRef} />
+  </div>
 )
 
 const VictoryScreen = ({ winner, onReset }: { winner: Monster; onReset: () => void }) => (
@@ -101,6 +125,12 @@ export default function BattlePage() {
   const [currentRound, setCurrentRound] = useState(0)
   const [winner, setWinner] = useState<Monster | null>(null)
   const [paused, setPaused] = useState(false)
+  const [viewMode, setViewMode] = useState<'live' | 'summary'>('summary')
+  const logEndRef = useRef<HTMLDivElement | null>(null)
+  
+  useEffect(() => {
+    logEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [logs])
 
   const first = monsters.find((m) => m.id === firstId)
   const second = monsters.find((m) => m.id === secondId)
@@ -123,12 +153,27 @@ export default function BattlePage() {
     setResult(r)
     setHp1(first.hp)
     setHp2(second.hp)
-    setLogs([])
-    setCurrentRound(0)
-    setWinner(null)
+    if (viewMode === 'summary') {
+      setLogs(r.rounds)
+      setCurrentRound(r.rounds.length)
+      let f1 = first.hp
+      let f2 = second.hp
+      for (const rd of r.rounds) {
+        if (rd.defenderId === first.id) f1 = rd.remainingHp
+        if (rd.defenderId === second.id) f2 = rd.remainingHp
+      }
+      setHp1(f1)
+      setHp2(f2)
+      setWinner(r.winner)
+    } else {
+      setLogs([])
+      setCurrentRound(0)
+      setWinner(null)
+    }
   }
 
   useEffect(() => {
+    if (viewMode !== 'live') return
     if (!result || winner || paused) return
     if (currentRound >= result.rounds.length) {
       if (result.winner) setWinner(result.winner)
@@ -142,7 +187,7 @@ export default function BattlePage() {
     else setHp2(round.remainingHp)
     const t = setTimeout(() => setCurrentRound((c) => c + 1), 1500)
     return () => clearTimeout(t)
-  }, [result, currentRound, paused, winner, firstId, monsters])
+  }, [result, currentRound, paused, winner, firstId, monsters, viewMode])
 
   return (
     <div className="p-4 space-y-4">
@@ -193,43 +238,101 @@ export default function BattlePage() {
         )}
       </div>
 
+      <div className="flex items-center justify-center gap-2 mb-4">
+        <span>Visualização:</span>
+        <button
+          className={`px-4 py-1 rounded-l-lg ${viewMode === 'live' ? 'bg-purple-600' : 'bg-gray-700'}`}
+          onClick={() => setViewMode('live')}
+        >
+          Ao Vivo
+        </button>
+        <button
+          className={`px-4 py-1 rounded-r-lg ${viewMode === 'summary' ? 'bg-purple-600' : 'bg-gray-700'}`}
+          onClick={() => setViewMode('summary')}
+        >
+          Resumida
+        </button>
+      </div>
+
       {result && (
-        <div className="arena bg-cover rounded-xl p-8 relative">
-          <div className="flex justify-between items-center">
-            {/* Monstro 1 */}
-            {first && (
-              <div className={`fighter ${attacker?.id === first.id ? 'animate-attack' : ''} relative`}>
-                <AnimatedHealthBar hp={hp1} maxHp={first.hp} />
-                <img src={first.image_url} className="monster-sprite" />
-                <div className="monster-name text-white mt-2">{first.name}</div>
-                {attacker?.id !== first.id && damage && logs[logs.length - 1]?.defenderId === first.id && (
-                  <FloatingDamage value={damage} />
-                )}
-              </div>
-            )}
-
-            {/* Elemento central */}
-            <div className="vs-divider">VS</div>
-
-            {/* Monstro 2 */}
-            {second && (
-              <div className={`fighter ${attacker?.id === second.id ? 'animate-attack' : ''} relative`}>
-                <AnimatedHealthBar hp={hp2} maxHp={second.hp} />
-                <img src={second.image_url} className="monster-sprite" />
-                <div className="monster-name text-white mt-2">{second.name}</div>
-                {attacker?.id !== second.id && damage && logs[logs.length - 1]?.defenderId === second.id && (
-                  <FloatingDamage value={damage} />
-                )}
-              </div>
-            )}
-          </div>
-
+        <div
+          className="arena rounded-xl p-8 relative bg-gradient-to-br from-gray-900 via-purple-900/30 to-gray-900 border border-purple-700/50 before:absolute before:inset-0 before:bg-[url('/texture.png')] before:opacity-20"
+        >
+          {result && (
+            <div className="w-full bg-gray-700 rounded-full h-2 mb-6">
+              <div
+                className="h-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-600"
+                style={{ width: `${(currentRound / result.rounds.length) * 100}%` }}
+              />
+            </div>
+          )}
+          {viewMode === 'live' && (
+            <div className="flex justify-between items-center">
+              {first && (
+                <div className={`fighter ${attacker?.id === first.id ? 'animate-attack' : ''} relative`}>
+                  <AnimatedHealthBar hp={hp1} maxHp={first.hp} />
+                  <img src={first.image_url} className="monster-sprite" />
+                  <div className="monster-name text-white mt-2">{first.name}</div>
+                  {attacker?.id !== first.id &&
+                    damage &&
+                    logs[logs.length - 1]?.defenderId === first.id && <FloatingDamage value={damage} />}
+                </div>
+              )}
+              <div className="vs-divider">VS</div>
+              {second && (
+                <div className={`fighter ${attacker?.id === second.id ? 'animate-attack' : ''} relative`}>
+                  <AnimatedHealthBar hp={hp2} maxHp={second.hp} />
+                  <img src={second.image_url} className="monster-sprite" />
+                  <div className="monster-name text-white mt-2">{second.name}</div>
+                  {attacker?.id !== second.id &&
+                    damage &&
+                    logs[logs.length - 1]?.defenderId === second.id && <FloatingDamage value={damage} />}
+                </div>
+              )}
+            </div>
+          )}
+          {viewMode === 'summary' && first && second && (
+            <div className="flex justify-around items-center">
+              <MonsterResultCard
+                monster={first}
+                initialHp={first.hp}
+                finalHp={hp1}
+                isWinner={winner?.id === first.id}
+              />
+              <div className="text-4xl text-yellow-400 mx-8">VS</div>
+              <MonsterResultCard
+                monster={second}
+                initialHp={second.hp}
+                finalHp={hp2}
+                isWinner={winner?.id === second.id}
+              />
+            </div>
+          )}
           <div className="battle-log mt-8">
-            <TurnIndicator attacker={attacker} />
-            <BattleTimeline rounds={logs} monsters={monsters} />
+            {viewMode === 'live' && <TurnIndicator attacker={attacker} />}
+            <BattleTimeline rounds={logs} monsters={monsters} endRef={logEndRef} />
           </div>
-
-          {winner && <VictoryScreen winner={winner} onReset={resetState} />}
+          {viewMode === 'live' && winner && <VictoryScreen winner={winner} onReset={resetState} />}
+          {viewMode === 'summary' && (
+            <div className="grid grid-cols-3 gap-4 mt-6">
+              <div className="bg-gray-800/50 p-3 rounded text-center">
+                <div className="text-2xl font-bold">{result.rounds.length}</div>
+                <div>Rodadas</div>
+              </div>
+              <div className="bg-gray-800/50 p-3 rounded text-center">
+                <div className="text-2xl font-bold text-red-400">
+                  {result.rounds.reduce((acc, r) => acc + r.damage, 0)}
+                </div>
+                <div>Dano Total</div>
+              </div>
+              <div className="bg-gray-800/50 p-3 rounded text-center">
+                <div className="text-2xl font-bold text-green-400">
+                  {result.rounds.filter((r) => r.damage > 20).length}
+                </div>
+                <div>Golpes Críticos</div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
