@@ -1,29 +1,29 @@
-# Revi Monster Battle
+# Batalha de Monstros
 
-```
-        +------------+     +--------------+
-        |  Monsters  |<--> |  Management  |
-        +------------+     +--------------+
-               |                  |
-               v                  v
-        +------------+     +--------------+
-        |   Battle   | --> |   Results    |
-        +------------+     +--------------+
-```
+O desafio propôs criar uma aplicação capaz de gerenciar monstros e realizar batalhas entre eles. Esta implementação entrega uma interface completa para cadastro, exclusão e confrontos com animações e resumo do duelo.
 
-## Running Locally
+## Como rodar localmente
 ```bash
-git clone https://github.com/seuuser/revi-monster-battle
-cd revi-monster-battle
 npm install
 npm run dev
 ```
+A aplicação ficará disponível em `http://localhost:5173`.
 
-Screenshots are available in `/screenshots` directory.
+### Build de produção
+```bash
+npm run build
+```
+Os arquivos otimizados são gerados em `dist/`.
 
-### Decisions
-- **React Hook Form** simplifies form state management and validation.
-- **Immutability** ensures predictable state updates and easier debugging.
-- **Animations** rely on CSS transitions for lightweight effects.
+## Tecnologias utilizadas
+- **Vite** com **React** e **TypeScript**
+- **React Router DOM** para navegação
+- **React Hook Form** para manipular formulários
+- **Tailwind CSS** para estilos
+- **Framer Motion** para animações
+- **React Toastify** para notificações
 
-The project is deployed on Vercel at: <https://example.vercel.app>
+## Diferenciais implementados
+- Tema escuro responsivo com foco em acessibilidade
+- Animações leves durante as batalhas e interações
+- Feedback visual por meio de toasts
