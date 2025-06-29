@@ -35,7 +35,7 @@ export default function MonsterForm({ onAddMonster }: MonsterFormProps) {
   })
 
   return (
-    <form onSubmit={onSubmit} className="grid grid-cols-1 gap-4 md:grid-cols-2">
+    <form onSubmit={onSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div className="flex flex-col">
         <label className="flex items-center gap-2 text-white">
           <FaSignature /> Nome

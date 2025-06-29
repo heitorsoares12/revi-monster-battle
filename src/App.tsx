@@ -9,7 +9,7 @@ export default function App() {
   return (
     <MonstersProvider>
       <BrowserRouter>
-        <nav className="p-4 flex gap-4 bg-dark text-white font-display text-xl">
+        <nav className="p-4 flex gap-4 justify-center bg-dark text-white font-display text-xl">
           <Link to="/">Monstros</Link>
           <Link to="/battle">Batalha</Link>
         </nav>

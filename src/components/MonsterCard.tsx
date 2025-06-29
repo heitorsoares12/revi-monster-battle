@@ -1,4 +1,7 @@
-import { memo } from 'react'
+import { memo, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { FaTrashAlt, FaCheck, FaTimes } from 'react-icons/fa'
+import { toast } from 'react-toastify'
 import type { Monster } from '../types/monster.types'
 
 interface MonsterCardProps {
@@ -7,6 +10,7 @@ interface MonsterCardProps {
 }
 
 function MonsterCardComponent({ monster, onDelete }: MonsterCardProps) {
+  const [confirm, setConfirm] = useState(false)
   const clamp = (v: number) => Math.min(100, v)
   return (
     <div className="bg-gradient-to-br from-gray-800 to-gray-900 border-2 border-purple-600 rounded-xl p-4 shadow-lg hover:shadow-red-500/30 transition-all duration-300 relative overflow-hidden before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] before:from-red-500/20 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity flex flex-col items-center">
@@ -23,36 +27,78 @@ function MonsterCardComponent({ monster, onDelete }: MonsterCardProps) {
       <h3 className="font-bold mb-2 text-white font-display text-lg">{monster.name}</h3>
       <div className="w-full space-y-2">
         <div>
-          <span className="text-red-400 text-xs">ATK {monster.attack}</span>
+          <span className="text-red-400 text-xs">Ataque {monster.attack}</span>
           <div className="w-full bg-gray-700 rounded h-2">
             <div className="bg-red-600 h-2 rounded" style={{ width: `${clamp(monster.attack)}%` }} />
           </div>
         </div>
         <div>
-          <span className="text-blue-400 text-xs">DEF {monster.defense}</span>
+          <span className="text-blue-400 text-xs">Defesa {monster.defense}</span>
           <div className="w-full bg-gray-700 rounded h-2">
             <div className="bg-blue-500 h-2 rounded" style={{ width: `${clamp(monster.defense)}%` }} />
           </div>
         </div>
         <div>
-          <span className="text-purple-400 text-xs">SPD {monster.speed}</span>
+          <span className="text-purple-400 text-xs">Velocidade {monster.speed}</span>
           <div className="w-full bg-gray-700 rounded h-2">
             <div className="bg-purple-500 h-2 rounded" style={{ width: `${clamp(monster.speed)}%` }} />
           </div>
         </div>
         <div>
-          <span className="text-green-400 text-xs">HP {monster.hp}</span>
+          <span className="text-green-400 text-xs">Vida {monster.hp}</span>
           <div className="w-full bg-gray-700 rounded h-2">
             <div className="bg-green-500 h-2 rounded" style={{ width: `${clamp(monster.hp)}%` }} />
           </div>
         </div>
       </div>
-      <button
-        onClick={() => onDelete(monster.id)}
-        className="mt-3 bg-red-700 hover:bg-red-800 text-white px-4 py-2 rounded-full text-sm"
-      >
-        Excluir
-      </button>
+      <div className="mt-3 h-10">
+        <AnimatePresence mode="wait" initial={false}>
+          {!confirm ? (
+            <motion.button
+              key="delete"
+              initial={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="bg-gradient-to-r from-red-700 to-red-800 hover:from-red-800 hover:to-red-900 text-white w-full py-2 rounded-full text-sm hover:scale-105 transition-transform duration-200"
+              onClick={() => {
+                setConfirm(true)
+                console.log(`Confirm delete for ${monster.name}`)
+              }}
+            >
+              <span className="flex items-center justify-center gap-2">
+                <FaTrashAlt /> Excluir
+              </span>
+            </motion.button>
+          ) : (
+            <motion.div
+              key="confirm"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="flex gap-2"
+            >
+              <button
+                className="bg-gradient-to-r from-red-600 to-red-800 hover:from-red-700 hover:to-red-900 text-white flex-1 py-2 rounded-full hover:scale-105 transition-transform duration-200"
+                onClick={() => {
+                  onDelete(monster.id)
+                  toast.success(`${monster.name} excluído!`)
+                }}
+              >
+                <span className="flex items-center justify-center gap-2">
+                  <FaCheck /> Confirmar
+                </span>
+              </button>
+              <button
+                className="bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-900 text-white flex-1 py-2 rounded-full hover:scale-105 transition-transform duration-200"
+                onClick={() => setConfirm(false)}
+              >
+                <span className="flex items-center justify-center gap-2">
+                  <FaTimes /> Cancelar
+                </span>
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   )
 }

@@ -1,9 +1,11 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useMonsters } from '../context/MonstersContext'
 import { runBattle, type BattleResult, type RoundLog } from '../logic/battle'
 import type { Monster } from '../types'
 import MonsterResultCard from '../components/MonsterResultCard'
 import { motion } from 'framer-motion'
+import { FaHome, FaArrowDown } from 'react-icons/fa'
 
 interface BarProps { hp: number; maxHp: number }
 const AnimatedHealthBar = ({ hp, maxHp }: BarProps) => {
@@ -94,25 +96,22 @@ const BattleTimeline = ({ rounds, monsters, endRef }: TimelineProps) => (
   </div>
 )
 
-const VictoryScreen = ({ winner, onReset }: { winner: Monster; onReset: () => void }) => (
-  <div className="mt-8 text-center space-y-4">
-    <motion.div
-      initial={{ scale: 0 }}
-      animate={{ scale: 1 }}
-      className="text-3xl font-display text-yellow-400"
-    >
-      🏆 {winner.name} venceu!
-    </motion.div>
-    <button
-      onClick={onReset}
-      className="bg-gradient-to-r from-red-600 to-purple-700 hover:from-red-700 hover:to-purple-800 text-white px-4 py-2 rounded-lg shadow-lg"
-    >
-      Revanche
-    </button>
-  </div>
-)
+const VictoryScreen = ({ winner }: { winner: Monster }) => {
+  return (
+    <div className="mt-8 text-center space-y-4">
+      <motion.div
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        className="text-3xl font-display text-yellow-400"
+      >
+        🏆 {winner.name} venceu!
+      </motion.div>
+    </div>
+  )
+}
 
 export default function BattlePage() {
+  const navigate = useNavigate()
   const { monsters } = useMonsters()
   const [firstId, setFirstId] = useState('')
   const [secondId, setSecondId] = useState('')
@@ -126,11 +125,24 @@ export default function BattlePage() {
   const [winner, setWinner] = useState<Monster | null>(null)
   const [paused, setPaused] = useState(false)
   const [viewMode, setViewMode] = useState<'live' | 'summary'>('summary')
+  const [viewLocked, setViewLocked] = useState(false)
+  const [autoScroll, setAutoScroll] = useState(true)
   const logEndRef = useRef<HTMLDivElement | null>(null)
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null)
+
+  const handleScroll = useCallback(() => {
+    const container = scrollContainerRef.current
+    if (!container) return
+    const isAtBottom =
+      container.scrollTop + container.clientHeight >= container.scrollHeight - 50
+    setAutoScroll(isAtBottom)
+  }, [])
   
   useEffect(() => {
-    logEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [logs])
+    if (viewMode === 'live' && autoScroll && !winner) {
+      logEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [logs, viewMode, winner, autoScroll])
 
   const first = monsters.find((m) => m.id === firstId)
   const second = monsters.find((m) => m.id === secondId)
@@ -145,10 +157,13 @@ export default function BattlePage() {
     setCurrentRound(0)
     setWinner(null)
     setPaused(false)
+    setViewLocked(false)
+    setAutoScroll(true)
   }
 
   const handleBattle = () => {
     if (!first || !second || first.id === second.id) return
+    setViewLocked(true)
     const r = runBattle(first, second)
     setResult(r)
     setHp1(first.hp)
@@ -165,6 +180,7 @@ export default function BattlePage() {
       setHp1(f1)
       setHp2(f2)
       setWinner(r.winner)
+      setViewLocked(false)
     } else {
       setLogs([])
       setCurrentRound(0)
@@ -177,6 +193,7 @@ export default function BattlePage() {
     if (!result || winner || paused) return
     if (currentRound >= result.rounds.length) {
       if (result.winner) setWinner(result.winner)
+      setViewLocked(false)
       return
     }
     const round = result.rounds[currentRound]
@@ -190,7 +207,8 @@ export default function BattlePage() {
   }, [result, currentRound, paused, winner, firstId, monsters, viewMode])
 
   return (
-    <div className="p-4 space-y-4">
+    <>
+      <div className="p-4 space-y-4 max-w-3xl mx-auto">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <select
           className="bg-gray-700 border border-purple-500 text-white rounded-lg p-2"
@@ -241,14 +259,16 @@ export default function BattlePage() {
       <div className="flex items-center justify-center gap-2 mb-4">
         <span>Visualização:</span>
         <button
-          className={`px-4 py-1 rounded-l-lg ${viewMode === 'live' ? 'bg-purple-600' : 'bg-gray-700'}`}
-          onClick={() => setViewMode('live')}
+          disabled={viewLocked}
+          className={`px-4 py-1 rounded-l-lg ${viewMode === 'live' ? 'bg-purple-600' : 'bg-gray-700'} ${viewLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
+          onClick={() => !viewLocked && setViewMode('live')}
         >
           Ao Vivo
         </button>
         <button
-          className={`px-4 py-1 rounded-r-lg ${viewMode === 'summary' ? 'bg-purple-600' : 'bg-gray-700'}`}
-          onClick={() => setViewMode('summary')}
+          disabled={viewLocked}
+          className={`px-4 py-1 rounded-r-lg ${viewMode === 'summary' ? 'bg-purple-600' : 'bg-gray-700'} ${viewLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
+          onClick={() => !viewLocked && setViewMode('summary')}
         >
           Resumida
         </button>
@@ -310,9 +330,30 @@ export default function BattlePage() {
           )}
           <div className="battle-log mt-8">
             {viewMode === 'live' && <TurnIndicator attacker={attacker} />}
-            <BattleTimeline rounds={logs} monsters={monsters} endRef={logEndRef} />
+            <div
+              className="scroll-container overflow-y-auto"
+              onScroll={handleScroll}
+              ref={scrollContainerRef}
+            >
+              <BattleTimeline
+                rounds={logs}
+                monsters={monsters}
+                endRef={logEndRef}
+              />
+            </div>
+            {!autoScroll && !winner && (
+              <button
+                className="fixed right-6 bottom-24 bg-purple-600 text-white p-2 rounded-full shadow-lg"
+                onClick={() => {
+                  logEndRef.current?.scrollIntoView()
+                  setAutoScroll(true)
+                }}
+              >
+                <FaArrowDown />
+              </button>
+            )}
           </div>
-          {viewMode === 'live' && winner && <VictoryScreen winner={winner} onReset={resetState} />}
+          {viewMode === 'live' && winner && <VictoryScreen winner={winner} />}
           {viewMode === 'summary' && (
             <div className="grid grid-cols-3 gap-4 mt-6">
               <div className="bg-gray-800/50 p-3 rounded text-center">
@@ -336,5 +377,14 @@ export default function BattlePage() {
         </div>
       )}
     </div>
+      <div className="fixed bottom-4 right-4">
+        <button
+          onClick={() => navigate('/')}
+          className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2"
+        >
+          <FaHome /> Voltar ao Início
+        </button>
+      </div>
+    </>
   )
 }

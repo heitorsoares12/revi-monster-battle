@@ -19,10 +19,8 @@ export function MonstersProvider({ children }: { children: ReactNode }) {
   }
 
   const deleteMonster = (id: string) => {
-    if (confirm('Excluir este monstro?')) {
-      setMonsters((prev) => prev.filter((m) => m.id !== id))
-      toast.success('Monstro excluído')
-    }
+    setMonsters((prev) => prev.filter((m) => m.id !== id))
+    toast.success('Monstro excluído')
   }
 
   return (
