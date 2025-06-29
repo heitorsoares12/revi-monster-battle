@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import MonsterManagementPage from './pages/MonsterManagementPage'
 import BattlePage from './pages/BattlePage'
 import { MonstersProvider } from './context/MonstersContext'
@@ -9,10 +9,6 @@ export default function App() {
   return (
     <MonstersProvider>
       <BrowserRouter>
-        <nav className="p-4 flex gap-4 justify-center bg-dark text-white font-display text-xl">
-          <Link to="/">Monstros</Link>
-          <Link to="/battle">Batalha</Link>
-        </nav>
         <Routes>
           <Route path="/" element={<MonsterManagementPage />} />
           <Route path="/battle" element={<BattlePage />} />
